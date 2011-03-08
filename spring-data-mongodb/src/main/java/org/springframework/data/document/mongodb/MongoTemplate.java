@@ -577,7 +577,7 @@ public class MongoTemplate implements InitializingBean, MongoOperations {
 			writer.write(o, dbDoc);
 			dbObjectList.add(dbDoc);
 		}
-		List<ObjectId> ids = insertDBObjectList(collectionName, dbObjectList);
+		List<Object> ids = insertDBObjectList(collectionName, dbObjectList);
 		for (int i = 0; i < listToSave.size(); i++) {
 			if (i < ids.size()) {
 				populateIdIfNecessary(listToSave.get(i), ids.get(i));
@@ -612,7 +612,7 @@ public class MongoTemplate implements InitializingBean, MongoOperations {
 	public <T> void save(String collectionName, T objectToSave, MongoWriter<T> writer) {
 		BasicDBObject dbDoc = new BasicDBObject();
 		writer.write(objectToSave, dbDoc);
-		ObjectId id = saveDBObject(collectionName, dbDoc);
+		Object id = saveDBObject(collectionName, dbDoc);
 		populateIdIfNecessary(objectToSave, id);
 	}
 
@@ -636,7 +636,7 @@ public class MongoTemplate implements InitializingBean, MongoOperations {
 		});
 	}
 	
-	protected List<ObjectId> insertDBObjectList(String collectionName, final List<DBObject> dbDocList) {
+	protected List<Object> insertDBObjectList(String collectionName, final List<DBObject> dbDocList) {
 
 		if (dbDocList.isEmpty()) {
 			return Collections.emptyList();
@@ -654,35 +654,37 @@ public class MongoTemplate implements InitializingBean, MongoOperations {
 			}
 		});
 
-		List<ObjectId> ids = new ArrayList<ObjectId>();
+		List<Object> ids = new ArrayList<Object>();
 		for (DBObject dbo : dbDocList) {
 			Object id = dbo.get(ID);
-			if (id instanceof ObjectId) {
-				ids.add((ObjectId) id);
+			/* according to the Mongo Java Driver javadocs an "_id" value is generated if one is not already set before
+			 * the call to collection.insert(). The generated id will be available in the document after the insert completes.
+			 * Therefore, the "id" value returned by the above statement cannot be null.
+			 */
+			if (id == null) {
+				// lets check just in case
+				LOGGER.warn("DBObject does not have _id set after insert: " + dbo);
 			}
-			else {
-				// no id was generated
-				ids.add(null);
-			}
+			ids.add(id);
 		}
 		return ids;
 	}
 
-	protected ObjectId saveDBObject(String collectionName, final DBObject dbDoc) {
+	protected Object saveDBObject(String collectionName, final DBObject dbDoc) {
 
 		if (dbDoc.keySet().isEmpty()) {
 			return null;
 		}
 
-		return execute(collectionName, new CollectionCallback<ObjectId>() {
-			public ObjectId doInCollection(DBCollection collection) throws MongoException, DataAccessException {
+		return execute(collectionName, new CollectionCallback<Object>() {
+			public Object doInCollection(DBCollection collection) throws MongoException, DataAccessException {
 				if (writeConcern == null) {
 					collection.save(dbDoc);
 				}
 				else {
 					collection.save(dbDoc, writeConcern);
 				}
-				return (ObjectId) dbDoc.get(ID);
+				return dbDoc.get(ID);
 			}
 		});
 	}
@@ -915,7 +917,7 @@ public class MongoTemplate implements InitializingBean, MongoOperations {
 			if (id instanceof ObjectId) {
 				target = this.mongoConverter.convertObjectId((ObjectId)id, idDescriptor.getPropertyType());
 			}
-			else {			
+			else {
 				target = id;
 			}
 			bw.setPropertyValue(idDescriptor.getName(), target);

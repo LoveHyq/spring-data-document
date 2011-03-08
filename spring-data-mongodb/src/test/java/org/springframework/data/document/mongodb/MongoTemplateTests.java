@@ -23,6 +23,7 @@ import static org.junit.Assert.assertThat;
 
 import static org.springframework.data.document.mongodb.query.Criteria.where;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.types.ObjectId;
@@ -207,6 +208,102 @@ public class MongoTemplateTests {
 		PersonWith_idPropertyOfTypeObjectId p8q = template.findOne(new Query(where("_id").is(p8.get_id())), PersonWith_idPropertyOfTypeObjectId.class);
 		assertThat(p8q, notNullValue());
 		assertThat(p8q.get_id(), is(p8.get_id()));
+	}
+	
+	// This tests exposes the issue described in DATADOC-38
+	@Test
+	public void testSaveDbObjectsWithStringId() throws Exception {
+		PersonWithIdPropertyOfTypeString p1 = new PersonWithIdPropertyOfTypeString();
+		p1.setFirstName("Arne_1");
+		p1.setAge(22);
+		p1.setId("ARNE1");
+		template.save(p1);
+		assertThat(p1.getId(), notNullValue());
+		PersonWithIdPropertyOfTypeString p1q = template.findOne(new Query(where("id").is(p1.getId())), PersonWithIdPropertyOfTypeString.class);
+		assertThat(p1q, notNullValue());
+		assertThat(p1q.getId(), is(p1.getId()));
+		
+		PersonWith_idPropertyOfTypeString p2 = new PersonWith_idPropertyOfTypeString();
+		p2.setFirstName("Arne_2");
+		p2.setAge(22);
+		p2.set_id("ARNE2");
+		template.save(p2);
+		assertThat(p2.get_id(), notNullValue());
+		PersonWith_idPropertyOfTypeString p2q = template.findOne(new Query(where("_id").is(p2.get_id())), PersonWith_idPropertyOfTypeString.class);
+		assertThat(p2q, notNullValue());
+		assertThat(p2q.get_id(), is(p2.get_id()));
+		
+		PersonWithIdPropertyOfTypeString p3 = new PersonWithIdPropertyOfTypeString();
+		p3.setFirstName("Arne_3");
+		p3.setAge(22);
+		template.save(p3);
+		assertThat(p3.getId(), notNullValue());
+		PersonWithIdPropertyOfTypeString p3q = template.findOne(new Query(where("id").is(p3.getId())), PersonWithIdPropertyOfTypeString.class);
+		assertThat(p3q, notNullValue());
+		assertThat(p3q.getId(), is(p3.getId()));
+		
+		PersonWith_idPropertyOfTypeString p4 = new PersonWith_idPropertyOfTypeString();
+		p4.setFirstName("Arne_4");
+		p4.setAge(22);
+		template.save(p4);
+		assertThat(p4.get_id(), notNullValue());
+		PersonWith_idPropertyOfTypeString p4q = template.findOne(new Query(where("_id").is(p4.get_id())), PersonWith_idPropertyOfTypeString.class);
+		assertThat(p4q, notNullValue());
+		assertThat(p4q.get_id(), is(p4.get_id()));
+		
+	}
+	
+	// This test does not fail before the changes made. Just added for completeness.
+	@Test
+	public void testInsertListOfDbObjects() throws Exception {
+		List<Object> insertItems = new ArrayList<Object>();
+		
+		PersonWithIdPropertyOfTypeString p1 = new PersonWithIdPropertyOfTypeString();
+		p1.setFirstName("Erik_1");
+		p1.setAge(22);
+		p1.setId("ERIK1");
+		assertThat(p1.getId(), notNullValue());
+		insertItems.add(p1);
+		
+		PersonWith_idPropertyOfTypeString p2 = new PersonWith_idPropertyOfTypeString();
+		p2.setFirstName("Erik_2");
+		p2.setAge(22);
+		p2.set_id("ERIK2");
+		assertThat(p2.get_id(), notNullValue());
+		insertItems.add(p2);
+		
+		PersonWithIdPropertyOfTypeString p3 = new PersonWithIdPropertyOfTypeString();
+		p3.setFirstName("Erik_3");
+		p3.setAge(22);
+		insertItems.add(p3);
+		
+		PersonWith_idPropertyOfTypeString p4 = new PersonWith_idPropertyOfTypeString();
+		p4.setFirstName("Erik_4");
+		p4.setAge(22);
+		insertItems.add(p4);
+		
+		template.insertList(insertItems);
+		assertThat(p3.getId(), notNullValue());
+		assertThat(p4.get_id(), notNullValue());
+		
+		PersonWithIdPropertyOfTypeString p1q = template.findOne(new Query(where("id").is(p1.getId())), PersonWithIdPropertyOfTypeString.class);
+		
+		assertThat(p1q, notNullValue());
+		assertThat(p1q.getId(), is(p1.getId()));
+		
+		PersonWith_idPropertyOfTypeString p2q = template.findOne(new Query(where("_id").is(p2.get_id())), PersonWith_idPropertyOfTypeString.class);
+		assertThat(p2q, notNullValue());
+		assertThat(p2q.get_id(), is(p2.get_id()));
+
+		PersonWithIdPropertyOfTypeString p3q = template.findOne(new Query(where("id").is(p3.getId())), PersonWithIdPropertyOfTypeString.class);
+		assertThat(p3q, notNullValue());
+		assertThat(p3q.getId(), is(p3.getId()));
+		
+		PersonWith_idPropertyOfTypeString p4q = template.findOne(new Query(where("_id").is(p4.get_id())), PersonWith_idPropertyOfTypeString.class);
+		assertThat(p4q, notNullValue());
+		assertThat(p4q.get_id(), is(p4.get_id()));
+		
+		
 	}
 
 }
